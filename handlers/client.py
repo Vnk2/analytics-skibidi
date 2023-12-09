@@ -6,10 +6,80 @@ from handlers import text_list
 
 
 person = {}
+check_n = 0
+person_to_nod={}
 
 
 class FSMInput(StatesGroup):
     number_first = State()
+
+
+class Nod_sr(StatesGroup):
+    number_first = State()
+    number_second = State()
+
+
+class count_Nod:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def fun(self, x, y):
+        if (y == 0):
+            return x
+        else:
+            return self.fun(y, x % y)
+
+    def return_answer(self):
+        m = self.fun(self.x, self.y)
+        return m
+
+
+class Nod_fun:
+
+    # Запуск машины состояний
+    async def cm_start(message: types.Message):
+
+        global check_n
+
+        if message.text == "/Nod":
+            check_n = 1
+
+        elif message.text == "/Nok":
+            check_n = 0
+
+        elif message.text == "/reduce":
+            check_n = 2
+
+        await Nod_sr.number_first.set()
+        await message.answer("Введите первое число")
+
+    async def load_number1(message: types.Message, state: FSMContext):
+        m = int(message.text)
+        person_to_nod[f"{message.from_user.id}_x"] = m
+        await message.answer("Введите 2 число")
+        await Nod_sr.next()
+
+    async def load_number2(message: types.Message, state: FSMContext):
+        global check_n
+        m = int(message.text)
+        person_to_nod[f"{message.from_user.id}_y"] = m
+
+        f = count_Nod(person_to_nod[f"{message.from_user.id}_x"], person_to_nod[f"{message.from_user.id}_y"])
+        g = int(f.return_answer())
+        print(check_n)
+        if check_n == 1:
+            pass
+        elif check_n == 0:
+            g = (person_to_nod[f"{message.from_user.id}_x"]* person_to_nod[f"{message.from_user.id}_y"])//g
+            g = str(g)
+        elif check_n == 2:
+            print(1)
+            g = str(str(int(person_to_nod[f"{message.from_user.id}_x"] / g)) + " " +
+                 str(int(person_to_nod[f"{message.from_user.id}_y"] / g)))
+
+        await message.answer(g)
+        await state.finish()
 
 
 class Take_num:
@@ -191,13 +261,19 @@ class Launch_func:
 
 a = Take_num
 create_func = Launch_func
-
+n = Nod_fun
 
 def register_handlers_client(dp: Dispatcher):
     # dp.register_message_handler(a.cm_start, commands=['average', 'sorted_bubble', "find_min", 'find_max',
     #                                     'find_median', 'quantity_symbol', 'find_moda', 'fast_sort', "start", "help"])
+
+    dp.register_message_handler(Nod_fun.cm_start, commands=['Nod', "Nok", "reduce"])
+    dp.register_message_handler(Nod_fun.load_number1, state=Nod_sr.number_first)
+    dp.register_message_handler(Nod_fun.load_number2, state=Nod_sr.number_second)
+
     dp.register_message_handler(a.cm_start, commands=['input_number'])
     dp.register_message_handler(a.load_number, state=FSMInput.number_first)
+
     dp.register_message_handler(create_func.find_average, commands=['average'])
     dp.register_message_handler(create_func.sort_bubble, commands=['sorted_bubble'])
     dp.register_message_handler(create_func.find_min, commands=['find_min'])
@@ -208,3 +284,4 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(create_func.find_spread, commands=['find_spread', "average"])
     dp.register_message_handler(create_func.fast_sort, commands=['fast_sort'])
     dp.register_message_handler(create_func.text_helper, commands=["start", "help"])
+
